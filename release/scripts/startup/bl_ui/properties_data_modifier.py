@@ -849,6 +849,11 @@ class DATA_PT_modifiers(ModifierButtonsPanel, Panel):
         col = layout.column()
         col.active = md.use_path
         col.prop(md, "use_preserve_shape")
+        col.prop(md, "orientation", text="Orientation")
+        row = col.row(align=True)
+        row.active = md.orientation == 'UV'
+        row.label(text="Orientation UV Index")
+        row.prop(md, "orientation_uv_index", text="")
 
         row = col.row(align=True)
         row.prop(md, "position", slider=True)

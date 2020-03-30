@@ -58,6 +58,8 @@ static void initData(ModifierData *md)
   pimd->space = eParticleInstanceSpace_World;
   pimd->particle_amount = 1.0f;
   pimd->particle_offset = 0.0f;
+  pimd->orientation = eParticleInstanceOrientation_Default;
+  pimd->orientation_uv_index = 0;
 
   STRNCPY(pimd->index_layer_name, "");
   STRNCPY(pimd->value_layer_name, "");
@@ -428,10 +430,29 @@ static Mesh *applyModifier(ModifierData *md, const ModifierEvalContext *ctx, Mes
           /* to quaternion */
           mat3_to_quat(frame, mat);
 
-          if (pimd->rotation > 0.0f || pimd->random_rotation > 0.0f) {
-            float angle = 2.0f * M_PI *
-                          (pimd->rotation +
-                           pimd->random_rotation * (psys_frand(psys, 19957323 + p) - 0.5f));
+          if (pimd->rotation > 0.0f || pimd->random_rotation > 0.0f ||
+              pimd->orientation != eParticleInstanceOrientation_Default) {
+            float angle = 0.0f;
+
+            if (pimd->orientation == eParticleInstanceOrientation_StrandCurve)
+            {
+              // Apply strand orientation with respect to normal
+              float frame_direction[3] = {1.0f, 0.0f, 0.0f};
+              float frame_normal[3] = {0.0f, 0.0f, 1.0f};
+              mul_qt_v3(frame, frame_direction);
+              mul_qt_v3(frame, frame_normal);
+              
+              angle -= angle_signed_on_axis_v3v3_v3(frame_direction, state.vel, frame_normal);
+            } 
+            else if (pimd->orientation == eParticleInstanceOrientation_UV)
+            {
+              // TODO Apply strand orientation with respect to 
+              angle += M_PI * 123.0f / 180.0f;
+            }
+            
+            angle += 2.0f * M_PI *
+                    (pimd->rotation +
+                     pimd->random_rotation * (psys_frand(psys, 19957323 + p) - 0.5f));
             float eul[3] = {0.0f, 0.0f, angle};
             float rot[4];
 
@@ -439,9 +460,7 @@ static Mesh *applyModifier(ModifierData *md, const ModifierEvalContext *ctx, Mes
             mul_qt_qtqt(frame, frame, rot);
           }
 
-          /* note: direction is same as normal vector currently,
-           * but best to keep this separate so the frame can be
-           * rotated later if necessary
+          /* note: direction is same as normal vector by default
            */
           copy_v3_v3(prev_dir, state.vel);
         }

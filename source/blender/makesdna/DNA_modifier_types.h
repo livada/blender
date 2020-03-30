@@ -946,6 +946,12 @@ typedef enum {
   eParticleInstanceSpace_Local = 1,
 } ParticleInstanceModifierSpace;
 
+typedef enum {
+	eParticleInstanceOrientation_Default = 0,
+	eParticleInstanceOrientation_StrandCurve = 1,
+	eParticleInstanceOrientation_UV = 2,
+} ParticleInstanceModifierOrientation;
+
 typedef struct ParticleInstanceModifierData {
   ModifierData modifier;
 
@@ -954,10 +960,13 @@ typedef struct ParticleInstanceModifierData {
   float position, random_position;
   float rotation, random_rotation;
   float particle_amount, particle_offset;
+  short orientation, orientation_uv_index;
   /** MAX_CUSTOMDATA_LAYER_NAME. */
   char index_layer_name[64];
   /** MAX_CUSTOMDATA_LAYER_NAME. */
   char value_layer_name[64];
+  
+  char _pad[4];
 } ParticleInstanceModifierData;
 
 typedef enum {
