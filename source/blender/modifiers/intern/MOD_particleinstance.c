@@ -59,7 +59,8 @@ static void initData(ModifierData *md)
   pimd->particle_amount = 1.0f;
   pimd->particle_offset = 0.0f;
   pimd->orientation = eParticleInstanceOrientation_Default;
-  pimd->orientation_uv_index = 0;
+  pimd->freeze_angle_count = 0;
+  pimd->freeze_orientation_angle = NULL;
 
   STRNCPY(pimd->index_layer_name, "");
   STRNCPY(pimd->value_layer_name, "");
@@ -353,6 +354,24 @@ static Mesh *applyModifier(ModifierData *md, const ModifierEvalContext *ctx, Mes
   if (mloopcols_value) {
     vert_part_value = MEM_calloc_arrayN(maxvert, sizeof(float), "vertex part value array");
   }
+  
+  if (pimd->orientation == eParticleInstanceOrientation_StrandCurve) {
+    if (pimd->freeze_orientation_angle == NULL ||
+        pimd->freeze_angle_count != part_end) {
+      /* Free storage if already allocated */
+      if (pimd->freeze_orientation_angle) {
+        MEM_SAFE_FREE(pimd->freeze_orientation_angle);
+      }
+      /* Allocate storage for orientation angles */
+      pimd->freeze_orientation_angle = MEM_calloc_arrayN(part_end, sizeof(float), "orientation angle array");
+    }
+  }
+  else {
+    /* Free the storage allocated for orientation angles */
+    if (pimd->freeze_orientation_angle) {
+      MEM_SAFE_FREE(pimd->freeze_orientation_angle);
+    }
+  }
 
   for (p = part_start, p_skip = 0; p < part_end; p++) {
     float prev_dir[3];
@@ -436,19 +455,20 @@ static Mesh *applyModifier(ModifierData *md, const ModifierEvalContext *ctx, Mes
 
             if (pimd->orientation == eParticleInstanceOrientation_StrandCurve)
             {
-              // Apply strand orientation with respect to normal
-              float frame_direction[3] = {1.0f, 0.0f, 0.0f};
-              float frame_normal[3] = {0.0f, 0.0f, 1.0f};
-              mul_qt_v3(frame, frame_direction);
-              mul_qt_v3(frame, frame_normal);
-              
-              angle -= angle_signed_on_axis_v3v3_v3(frame_direction, state.vel, frame_normal);
+              if (!(pimd->flag & eParticleInstanceFlag_FreezeOrientation) ||
+                  pimd->freeze_angle_count != part_end) {
+                
+                pimd->freeze_angle_count = part_end;
+                // Apply strand orientation with respect to normal
+                float frame_direction[3] = {1.0f, 0.0f, 0.0f};
+                float frame_normal[3] = {0.0f, 0.0f, 1.0f};
+                mul_qt_v3(frame, frame_direction);
+                mul_qt_v3(frame, frame_normal);
+                
+                pimd->freeze_orientation_angle[p] = -angle_signed_on_axis_v3v3_v3(frame_direction, state.vel, frame_normal);
+              }
+              angle += pimd->freeze_orientation_angle[p];
             } 
-            else if (pimd->orientation == eParticleInstanceOrientation_UV)
-            {
-              // TODO Apply strand orientation with respect to 
-              angle += M_PI * 123.0f / 180.0f;
-            }
             
             angle += 2.0f * M_PI *
                     (pimd->rotation +
@@ -565,6 +585,31 @@ static Mesh *applyModifier(ModifierData *md, const ModifierEvalContext *ctx, Mes
 
   return result;
 }
+
+static void copyData(const ModifierData *md, ModifierData *target, const int flag)
+{
+  const ParticleInstanceModifierData *mmd = (const ParticleInstanceModifierData *)md;
+  ParticleInstanceModifierData *tmmd = (ParticleInstanceModifierData *)target;
+
+  modifier_copyData_generic(md, target, flag);
+
+  if (mmd->freeze_orientation_angle) {
+    tmmd->freeze_orientation_angle = MEM_dupallocN(mmd->freeze_orientation_angle);
+  }
+
+}
+
+
+static void freeData(ModifierData *md)
+{
+  ParticleInstanceModifierData *mmd = (ParticleInstanceModifierData *)md;
+
+  if (mmd->freeze_orientation_angle) {
+    MEM_freeN(mmd->freeze_orientation_angle);
+  }
+}
+
+
 ModifierTypeInfo modifierType_ParticleInstance = {
     /* name */ "ParticleInstance",
     /* structName */ "ParticleInstanceModifierData",
@@ -573,7 +618,7 @@ ModifierTypeInfo modifierType_ParticleInstance = {
     /* flags */ eModifierTypeFlag_AcceptsMesh | eModifierTypeFlag_SupportsMapping |
         eModifierTypeFlag_SupportsEditmode | eModifierTypeFlag_EnableInEditmode,
 
-    /* copyData */ modifier_copyData_generic,
+    /* copyData */ copyData,
 
     /* deformVerts */ NULL,
     /* deformMatrices */ NULL,
@@ -583,7 +628,7 @@ ModifierTypeInfo modifierType_ParticleInstance = {
 
     /* initData */ initData,
     /* requiredDataMask */ requiredDataMask,
-    /* freeData */ NULL,
+    /* freeData */ freeData,
     /* isDisabled */ isDisabled,
     /* updateDepsgraph */ updateDepsgraph,
     /* dependsOnTime */ NULL,

@@ -3428,7 +3428,6 @@ static void rna_def_modifier_particleinstance(BlenderRNA *brna)
   static EnumPropertyItem particleinstance_orientation[] = {
       {eParticleInstanceOrientation_Default, "DEFAULT", 0, "Default", "Use default instance orientation"},
       {eParticleInstanceOrientation_StrandCurve, "CURVE", 0, "Strand curve", "Orient instances to match strand curves"},
-      {eParticleInstanceOrientation_UV, "UV", 0, "UV", "Orient instances in UV -Y direction"},
       {0, NULL, 0, NULL, NULL},
   };
 
@@ -3496,9 +3495,9 @@ static void rna_def_modifier_particleinstance(BlenderRNA *brna)
   RNA_def_property_ui_text(prop, "Orientation", "Orientation of particle instances when Create along paths is enabled");
   RNA_def_property_update(prop, 0, "rna_Modifier_update");
 
-  prop = RNA_def_property(srna, "orientation_uv_index", PROP_INT, PROP_NONE);
-  RNA_def_property_int_sdna(prop, NULL, "orientation_uv_index");
-  RNA_def_property_ui_text(prop, "Orientation UV Index", "Index of UV coordinates used to orient particle instances");
+  prop = RNA_def_property(srna, "freeze_orientation", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, NULL, "flag", eParticleInstanceFlag_FreezeOrientation);
+  RNA_def_property_ui_text(prop, "Freeze Orientation", "Freeze current particle orientation");
   RNA_def_property_update(prop, 0, "rna_Modifier_update");
 
   prop = RNA_def_property(srna, "show_unborn", PROP_BOOLEAN, PROP_NONE);

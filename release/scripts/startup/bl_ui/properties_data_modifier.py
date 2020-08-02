@@ -848,12 +848,15 @@ class DATA_PT_modifiers(ModifierButtonsPanel, Panel):
 
         col = layout.column()
         col.active = md.use_path
+        col.enabled = md.use_path
         col.prop(md, "use_preserve_shape")
         col.prop(md, "orientation", text="Orientation")
         row = col.row(align=True)
-        row.active = md.orientation == 'UV'
-        row.label(text="Orientation UV Index")
-        row.prop(md, "orientation_uv_index", text="")
+        
+        using_curve_orientation = md.orientation == 'CURVE'
+        row.active = using_curve_orientation
+        row.enabled = using_curve_orientation
+        row.prop(md, "freeze_orientation")
 
         row = col.row(align=True)
         row.prop(md, "position", slider=True)

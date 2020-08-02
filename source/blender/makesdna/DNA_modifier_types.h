@@ -939,6 +939,7 @@ typedef enum {
   eParticleInstanceFlag_Dead = (1 << 5),
   eParticleInstanceFlag_KeepShape = (1 << 6),
   eParticleInstanceFlag_UseSize = (1 << 7),
+  eParticleInstanceFlag_FreezeOrientation = (1 << 8),
 } ParticleInstanceModifierFlag;
 
 typedef enum {
@@ -949,7 +950,6 @@ typedef enum {
 typedef enum {
 	eParticleInstanceOrientation_Default = 0,
 	eParticleInstanceOrientation_StrandCurve = 1,
-	eParticleInstanceOrientation_UV = 2,
 } ParticleInstanceModifierOrientation;
 
 typedef struct ParticleInstanceModifierData {
@@ -960,13 +960,17 @@ typedef struct ParticleInstanceModifierData {
   float position, random_position;
   float rotation, random_rotation;
   float particle_amount, particle_offset;
-  short orientation, orientation_uv_index;
+  
+  short orientation;
+  char _pad[2];
+  int   freeze_angle_count;
+  float *freeze_orientation_angle;
+  
   /** MAX_CUSTOMDATA_LAYER_NAME. */
   char index_layer_name[64];
   /** MAX_CUSTOMDATA_LAYER_NAME. */
   char value_layer_name[64];
   
-  char _pad[4];
 } ParticleInstanceModifierData;
 
 typedef enum {
